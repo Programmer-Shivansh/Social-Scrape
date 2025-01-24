@@ -36,6 +36,20 @@ def get_platform(url: str) -> str:
     else:
         return "unknown"
 
+def get_content_type(url: str) -> str:
+    url = str(url).lower()
+    if "instagram.com/reel/" in url:
+        return "reel"
+    elif "instagram.com/p/" in url:
+        return "post"
+    elif "youtube.com/watch" in url:
+        return "video"
+    elif "tiktok.com/@" in url:
+        return "profile"
+    elif "tiktok.com/" in url:
+        return "video"
+    return "profile"
+
 SCRAPER_MAP = {
     "instagram": InstagramScraper,
     "youtube": YoutubeScraper,
@@ -47,6 +61,8 @@ SCRAPER_MAP = {
 async def scrape_url(request: ScrapeRequest):
     try:
         platform = get_platform(request.url)
+        content_type = get_content_type(request.url)
+        
         if platform == "unknown":
             raise HTTPException(status_code=400, detail="Unsupported platform")
 
@@ -55,7 +71,12 @@ async def scrape_url(request: ScrapeRequest):
         
         try:
             data = scraper.scrape_profile(str(request.url))
-            return {"success": True, "platform": platform, "data": data}
+            return {
+                "success": True, 
+                "platform": platform,
+                "content_type": content_type, 
+                "data": data
+            }
         finally:
             scraper.close()
             

@@ -20,35 +20,35 @@ class TiktokScraper(BaseScraper):
 
     def _get_followers(self):
         try:
-            followers = self.driver.find_element(By.CSS_SELECTOR, '[data-e2e="followers-count"]')
+            followers = self.driver.find_element(By.XPATH, "//strong[@data-e2e='followers-count']")
             return followers.text
         except:
             return "N/A"
 
     def _get_following(self):
         try:
-            following = self.driver.find_element(By.CSS_SELECTOR, '[data-e2e="following-count"]')
+            following = self.driver.find_element(By.XPATH, "//strong[@data-e2e='following-count']")
             return following.text
         except:
             return "N/A"
 
     def _get_likes(self):
         try:
-            likes = self.driver.find_element(By.CSS_SELECTOR, '[data-e2e="likes-count"]')
+            likes = self.driver.find_element(By.XPATH, "//strong[@data-e2e='likes-count']")
             return likes.text
         except:
             return "N/A"
 
     def _get_bio(self):
         try:
-            bio = self.driver.find_element(By.CSS_SELECTOR, '[data-e2e="user-bio"]')
+            bio = self.driver.find_element(By.XPATH, "//h2[@data-e2e='user-bio']/span")
             return bio.text
         except:
             return "N/A"
 
     def _get_username(self):
         try:
-            username = self.driver.find_element(By.CSS_SELECTOR, '[data-e2e="user-title"]')
+            username = self.driver.find_element(By.XPATH, "//h1[@data-e2e='user-title']")
             return username.text
         except:
             return "N/A"

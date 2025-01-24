@@ -39,32 +39,28 @@ class FacebookScraper(BaseScraper):
 
     def _get_followers(self):
         try:
-            followers = self.driver.find_element(
-                By.CSS_SELECTOR, 'div[data-key="tab_followers"]'
-            )
+            followers = self.driver.find_element(By.XPATH, "//div[@role='tablist']//div[contains(text(), 'Followers')]")
             return followers.text
         except:
             return "N/A"
 
     def _get_name(self):
         try:
-            name = self.driver.find_element(By.CSS_SELECTOR, "h1.x1heor9g")
+            name = self.driver.find_element(By.XPATH, "//h1[contains(@class, 'x1heor9g')]")
             return name.text
         except:
             return "N/A"
 
     def _get_about(self):
         try:
-            about = self.driver.find_element(By.CSS_SELECTOR, '[data-key="tab_about"]')
+            about = self.driver.find_element(By.XPATH, "//div[@role='tablist']//div[contains(text(), 'About')]")
             return about.text
         except:
             return "N/A"
 
     def _get_page_likes(self):
         try:
-            likes = self.driver.find_element(
-                By.CSS_SELECTOR, 'div[data-key="tab_likes"]'
-            )
+            likes = self.driver.find_element(By.XPATH, "//div[@role='tablist']//div[contains(text(), 'Likes')]")
             return likes.text
         except:
             return "N/A"
