@@ -11,15 +11,13 @@
         <h1>Social Media Scraper</h1>
         <form id="scrapeForm">
             <input type="url" id="urlInput" placeholder="Enter social media URL" required>
-            <select id="scrapeType">
-                <option value="followers">Followers</option>
-                <option value="following">Following</option>
-                <option value="likes">Likes</option>
-                <option value="comments">Comments</option>
-            </select>
             <button type="submit">Scrape</button>
         </form>
-        <div id="results"></div>
+        <div id="results">
+            <div id="platform-info"></div>
+            <div id="content-type"></div>
+            <div id="scrape-data"></div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

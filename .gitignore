@@ -1,2 +1,6 @@
 backend/__pycache__
 backend/scrapers/__pycache__
+.env
+backend/.env
+*.env
+
