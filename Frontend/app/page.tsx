@@ -3,9 +3,14 @@ import { motion, useAnimation, useMotionValue, useTransform } from "framer-motio
 import { useEffect, useState } from "react";
 import { FaInstagram, FaYoutube, FaTwitter, FaTiktok } from 'react-icons/fa';
 import MouseFollower from './components/MouseFollower';
+import { scrapeUrl } from './services/api';
+import LoadingState from './components/LoadingState';
+import ResponseDisplay from './components/ResponseDisplay';
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<any>(null);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -29,10 +34,20 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle submission
-    console.log("URL submitted:", url);
+    if (!url) return;
+
+    setIsLoading(true);
+    try {
+      const data = await scrapeUrl(url);
+      setResponse(data);
+    } catch (error) {
+      console.error('Error:', error);
+      // Handle error appropriately
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Add floating animation for background objects
@@ -83,8 +98,8 @@ export default function Home() {
 
   // Corner decoration components
   const CornerDecoration = ({ position }: { position: 'top-left' | 'top-right' }) => {
-    const x = useTransform(mouseX, [0, window.innerWidth], [0, 100]);
-    const y = useTransform(mouseY, [0, window.innerHeight], [0, 100]);
+    const x = useTransform(mouseX, [0, window.innerWidth || 1], [0, 100]);
+    const y = useTransform(mouseY, [0, window.innerHeight || 1], [0, 100]);
 
     return (
       <motion.div
@@ -203,22 +218,22 @@ export default function Home() {
 
           <motion.form 
             onSubmit={handleSubmit}
-            className="max-w-3xl mx-auto"
+            className="max-w-3xl mx-auto relative"
             variants={itemVariants}
           >
-            <div className="relative group">
+            <div className="relative flex items-center">
               <motion.input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="Paste your social media URL here..."
-                className="w-full px-8 py-6 rounded-2xl text-lg bg-white/10 backdrop-blur-xl border-2 border-white/20 text-white placeholder-white/70 outline-none focus:border-white/40 transition-all duration-300 shadow-xl"
+                className="w-full px-8 py-6 pr-40 rounded-2xl text-lg bg-white/10 backdrop-blur-xl border-2 border-white/20 text-white placeholder-white/70 outline-none focus:border-white/40 transition-all duration-300 shadow-xl"
                 whileFocus={{ scale: 1.02 }}
               />
               
               <motion.button
                 type="submit"
-                className="absolute right-3 top-1/2 -translate-y-1/2 px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold shadow-lg backdrop-blur-sm"
+                className="absolute right-3 px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold shadow-lg backdrop-blur-sm hover:bg-opacity-90"
                 whileHover={{ scale: 1.05, backgroundColor: "#f0f0f0" }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -270,6 +285,15 @@ export default function Home() {
           </motion.div>
         </motion.div>
       </div>
+
+      {isLoading && <LoadingState />}
+      
+      {response && (
+        <ResponseDisplay 
+          data={response} 
+          onClose={() => setResponse(null)}
+        />
+      )}
     </div>
   );
 }
