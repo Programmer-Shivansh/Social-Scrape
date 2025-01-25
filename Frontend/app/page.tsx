@@ -6,11 +6,13 @@ import MouseFollower from './components/MouseFollower';
 import { scrapeUrl } from './services/api';
 import LoadingState from './components/LoadingState';
 import ResponseDisplay from './components/ResponseDisplay';
+import ErrorDisplay from './components/ErrorDisplay';
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
+  const [showError, setShowError] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -44,7 +46,7 @@ export default function Home() {
       setResponse(data);
     } catch (error) {
       console.error('Error:', error);
-      // Handle error appropriately
+      setShowError(true);
     } finally {
       setIsLoading(false);
     }
@@ -139,6 +141,10 @@ export default function Home() {
         ))}
       </motion.div>
     );
+  };
+
+  const handleCloseError = () => {
+    setShowError(false);
   };
 
   return (
@@ -294,6 +300,7 @@ export default function Home() {
           onClose={() => setResponse(null)}
         />
       )}
+      {showError && <ErrorDisplay onClose={handleCloseError} />}
     </div>
   );
 }
