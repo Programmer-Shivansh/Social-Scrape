@@ -1,0 +1,76 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#scrapeForm {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+}
+
+#urlInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+}
+
+input, select, button {
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #0066ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0052cc;
+}
+
+#results {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+#platform-info {
+    font-weight: bold;
+    color: #0066ff;
+    margin-bottom: 10px;
+}
+
+#content-type {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+#scrape-data {
+    white-space: pre-wrap;
+    font-family: monospace;
+    background-color: white;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.error {
+    color: #ff0033;
+    padding: 10px;
+    background-color: #ffe6e6;
+    border-radius: 4px;
+}
