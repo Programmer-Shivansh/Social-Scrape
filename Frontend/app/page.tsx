@@ -1,18 +1,22 @@
 'use client'
 import { motion, useAnimation, useMotionValue, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
-import { FaInstagram, FaYoutube, FaTwitter, FaTiktok } from 'react-icons/fa';
+import { FaInstagram, FaYoutube, FaFacebook, FaTiktok } from 'react-icons/fa';
 import MouseFollower from './components/MouseFollower';
 import { scrapeUrl } from './services/api';
 import LoadingState from './components/LoadingState';
 import ResponseDisplay from './components/ResponseDisplay';
 import ErrorDisplay from './components/ErrorDisplay';
+import TikTokBanNotice from './components/TikTokBanNotice';
+import FacebookMaintenanceNotice from './components/FacebookMaintenanceNotice';
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [showError, setShowError] = useState(false);
+  const [showTikTokNotice, setShowTikTokNotice] = useState(false);
+  const [showFacebookNotice, setShowFacebookNotice] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -39,6 +43,17 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
+
+    // Check if URL is TikTok
+    if (url.includes('tiktok.com')) {
+      setShowTikTokNotice(true);
+      return;
+    }
+    
+    if (url.includes('facebook.com')) {
+      setShowFacebookNotice(true);
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -100,8 +115,8 @@ export default function Home() {
 
   // Corner decoration components
   const CornerDecoration = ({ position }: { position: 'top-left' | 'top-right' }) => {
-    const x = useTransform(mouseX, [0, window.innerWidth || 1], [0, 100]);
-    const y = useTransform(mouseY, [0, window.innerHeight || 1], [0, 100]);
+    const x = useTransform(mouseX, [0, 1], [0, 100]);
+    const y = useTransform(mouseY, [0,1], [0, 100]);
 
     return (
       <motion.div
@@ -147,6 +162,20 @@ export default function Home() {
     setShowError(false);
   };
 
+  // Add state for background objects
+  const [backgroundObjects, setBackgroundObjects] = useState<Array<{ width: number; height: number; left: string; top: string }>>([]);
+
+  // Move random calculations to useEffect
+  useEffect(() => {
+    const objects = [...Array(8)].map(() => ({
+      width: Math.random() * 200 + 50,
+      height: Math.random() * 200 + 50,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+    }));
+    setBackgroundObjects(objects);
+  }, []);
+
   return (
     <div className="min-h-screen overflow-hidden relative bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
       {/* Add MouseFollower at the top level */}
@@ -157,15 +186,15 @@ export default function Home() {
       <CornerDecoration position="top-right" />
 
       {/* Animated background objects */}
-      {[...Array(8)].map((_, i) => (
+      {backgroundObjects.map((obj, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full bg-white/10 backdrop-blur-lg"
           style={{
-            width: Math.random() * 200 + 50,
-            height: Math.random() * 200 + 50,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            width: obj.width,
+            height: obj.height,
+            left: obj.left,
+            top: obj.top,
             zIndex: 0
           }}
           variants={floatingAnimation}
@@ -201,7 +230,7 @@ export default function Home() {
         }}
       />
 
-      <div className="relative z-10">
+      <div className="relative z-20"> {/* Increased z-index */}
         <motion.div 
           className="container mx-auto px-4 py-20"
           initial="hidden"
@@ -255,12 +284,12 @@ export default function Home() {
             {[
               { name: 'Instagram', icon: <FaInstagram size={40} />, color: 'from-pink-500 to-purple-500' },
               { name: 'YouTube', icon: <FaYoutube size={40} />, color: 'from-red-500 to-red-600' },
-              { name: 'Twitter', icon: <FaTwitter size={40} />, color: 'from-blue-400 to-blue-500' },
+              { name: 'Facebook', icon: <FaFacebook size={40} />, color: 'from-blue-600 to-blue-700' },
               { name: 'TikTok', icon: <FaTiktok size={40} />, color: 'from-black to-gray-800' }
             ].map((platform) => (
               <motion.div
                 key={platform.name}
-                className={`bg-gradient-to-br ${platform.color} backdrop-blur-md rounded-2xl p-8 text-white text-center transform transition-all duration-300 shadow-xl hover:shadow-2xl`}
+                className={`relative z-20 bg-gradient-to-br ${platform.color} backdrop-blur-md rounded-2xl p-8 text-white text-center transform transition-all duration-300 shadow-xl hover:shadow-2xl`}
                 variants={itemVariants}
                 whileHover={{ 
                   scale: 1.05,
@@ -269,9 +298,10 @@ export default function Home() {
                   transition: { duration: 0.2 }
                 }}
                 whileTap={{ scale: 0.95 }}
+                style={{ pointerEvents: 'auto' }}
               >
                 <motion.div 
-                  className="mb-4"
+                  className="relative z-20 mb-4"
                   whileHover={{ 
                     rotate: 360,
                     transition: { 
@@ -301,6 +331,12 @@ export default function Home() {
         />
       )}
       {showError && <ErrorDisplay onClose={handleCloseError} />}
+      {showTikTokNotice && (
+        <TikTokBanNotice onClose={() => setShowTikTokNotice(false)} />
+      )}
+      {showFacebookNotice && (
+        <FacebookMaintenanceNotice onClose={() => setShowFacebookNotice(false)} />
+      )}
     </div>
   );
 }

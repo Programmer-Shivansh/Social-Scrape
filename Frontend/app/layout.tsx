@@ -9,7 +9,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "Multi-Scraper | Social Media Data Extractor",
-  description: "Extract data from Instagram, YouTube, Twitter, and TikTok effortlessly",
+  description: "Extract data from Instagram, YouTube, Facebook, and TikTok effortlessly",
 };
 
 export default function RootLayout({

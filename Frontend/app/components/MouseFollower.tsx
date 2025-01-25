@@ -57,7 +57,7 @@ export default function MouseFollower() {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-30">
+    <div className="pointer-events-none fixed inset-0 z-10"> {/* Reduced z-index */}
       {/* Trail effect */}
       {trail.map((position, index) => (
         <motion.div
