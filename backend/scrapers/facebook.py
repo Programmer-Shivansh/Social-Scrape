@@ -3,7 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-from config import settings
 
 
 class FacebookScraper(BaseScraper):
@@ -20,8 +19,6 @@ class FacebookScraper(BaseScraper):
         )
         password = self.driver.find_element(By.ID, "pass")
 
-        email.send_keys(settings.FACEBOOK_EMAIL)
-        password.send_keys(settings.FACEBOOK_PASSWORD)
         password.submit()
         time.sleep(5)
 

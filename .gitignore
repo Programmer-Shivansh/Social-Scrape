@@ -3,3 +3,4 @@ backend/scrapers/__pycache__
 *.env
 .env
 backend/.env
+backend/venv
