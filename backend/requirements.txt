@@ -2,7 +2,7 @@ fastapi
 uvicorn
 selenium==4.10.0
 python-dotenv==0.19.0
-webdriver-manager==3.8.6
+webdriver-manager
 pydantic
 TikTokApi==5.2.2
 google-api-python-client==2.86.0
