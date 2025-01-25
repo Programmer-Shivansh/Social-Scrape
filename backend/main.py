@@ -19,9 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class ScrapeRequest(BaseModel):
     url: HttpUrl
     scrape_type: str
+
 
 def get_platform(url: str) -> str:
     url = str(url).lower()
@@ -36,10 +38,11 @@ def get_platform(url: str) -> str:
     else:
         return "unknown"
 
+
 def get_content_type(url: str) -> str:
     url = str(url).lower()
-    if "instagram.com/reel/" in url:
-        return "reel"
+    if "instagram.com/reels/" in url:
+        return "reels"
     elif "instagram.com/p/" in url:
         return "post"
     elif "youtube.com/watch" in url:
@@ -50,38 +53,41 @@ def get_content_type(url: str) -> str:
         return "video"
     return "profile"
 
+
 SCRAPER_MAP = {
     "instagram": InstagramScraper,
     "youtube": YoutubeScraper,
     "tiktok": TiktokScraper,
-    "facebook": FacebookScraper
+    "facebook": FacebookScraper,
 }
+
 
 @app.post("/scrape")
 async def scrape_url(request: ScrapeRequest):
     try:
         platform = get_platform(request.url)
         content_type = get_content_type(request.url)
-        
+
         if platform == "unknown":
             raise HTTPException(status_code=400, detail="Unsupported platform")
 
         scraper_class = SCRAPER_MAP.get(platform)
         scraper = scraper_class()
-        
+
         try:
             data = scraper.scrape_profile(str(request.url))
             return {
-                "success": True, 
+                "success": True,
                 "platform": platform,
-                "content_type": content_type, 
-                "data": data
+                "content_type": content_type,
+                "data": data,
             }
         finally:
             scraper.close()
-            
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

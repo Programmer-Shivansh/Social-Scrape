@@ -1,6 +1,5 @@
 backend/__pycache__
 backend/scrapers/__pycache__
+*.env
 .env
 backend/.env
-*.env
-
