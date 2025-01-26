@@ -22,9 +22,6 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
   const renderProfileImage = (url: string) => {
     if (!url || url === "N/A") return null;
     
-    // Clean up the URL and ensure it's a valid URL
-    const cleanUrl = url.replace(/\\/g, '').replace(/^"(.+)"$/, '$1');
-    
     const [imgError, setImgError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     
@@ -38,6 +35,12 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
         </motion.div>
       );
     }
+
+    // Ensure URL is properly decoded and cleaned
+    const cleanUrl = decodeURIComponent(url)
+      .replace(/\\/g, '')
+      .replace(/^"(.+)"$/, '$1')
+      .split('?')[0]; // Remove query parameters
 
     return (
       <motion.div
@@ -55,11 +58,11 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
           alt="Profile"
           fill
           className={`object-cover z-10 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-          unoptimized
           onError={() => setImgError(true)}
           onLoad={() => setIsLoading(false)}
           sizes="128px"
           priority
+          unoptimized
         />
       </motion.div>
     );
@@ -570,8 +573,113 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
     }
   };
 
+  const renderFollowingContent = (content: any) => {
+    return (
+      <div className="space-y-6">
+        {/* Following Header */}
+        <div className="flex items-center gap-4">
+          <FaInstagram className="text-pink-500" size={40} />
+          <div>
+            <h2 className="text-3xl font-bold text-white">Following List</h2>
+            <p className="text-white/60">{content.count} accounts</p>
+          </div>
+        </div>
+
+        {/* Following Grid - Updated with better scrolling */}
+        <div className="relative">
+          <div className="max-h-[60vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {content.following_list.map((user: any, index: number) => (
+                <motion.div
+                  key={index}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    delay: index * 0.05,
+                    duration: 0.3,
+                    ease: "easeOut"
+                  }}
+                >
+                  {/* Profile Image - Fixed size and better error handling */}
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-pink-500/20 to-purple-500/20">
+                    {user.profile_img ? (
+                      <Image
+                        src={user.profile_img.split('?')[0]}
+                        alt={user.username}
+                        fill
+                        className="object-cover transition-opacity duration-300"
+                        sizes="48px"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.parentElement?.classList.add('error-state');
+                          target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FaUser className="text-white/50" size={20} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* User Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-semibold truncate">
+                      @{user.username}
+                    </h3>
+                    {user.display_name && (
+                      <p className="text-white/60 text-sm truncate">
+                        {user.display_name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* View Profile Link - Improved hover effect */}
+                  <motion.a
+                    href={`https://instagram.com/${user.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-pink-400 hover:text-pink-300 transition-all duration-300"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FaInstagram size={16} />
+                  </motion.a>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Scroll Fade Effects */}
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-purple-900/90 to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-indigo-900/90 to-transparent" />
+        </div>
+
+        {/* Summary - Updated style */}
+        <motion.div
+          className="mt-6 bg-white/5 backdrop-blur-sm p-4 rounded-xl text-center border border-white/10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <p className="text-white/80">
+            Following <span className="font-bold text-white">{content.count}</span> accounts
+          </p>
+        </motion.div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     const content = data.data;
+    
+    // Add case for following type
+    if (content.type === 'following') {
+      return renderFollowingContent(content);
+    }
+    
     if (data.platform === 'youtube') {
       return renderYoutubeContent(content);
     } else if (data.platform === 'instagram') {
@@ -698,13 +806,13 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
   return (
     <AnimatePresence>
       <motion.div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 flex items-center justify-center p-4 overflow-y-auto"
+        className="fixed inset-0 bg-black/50 backdrop-blur-md z-40 flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
         <motion.div 
-          className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 rounded-2xl p-6 max-w-3xl w-full backdrop-blur-lg border border-white/10 shadow-2xl"
+          className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-lg border border-white/10 shadow-2xl relative scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
           initial={{ scale: 0.8, y: 50, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
           transition={{ type: "spring", duration: 0.5 }}

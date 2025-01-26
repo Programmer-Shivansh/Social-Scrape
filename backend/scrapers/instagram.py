@@ -50,6 +50,8 @@ class InstagramScraper(BaseScraper):
             return self._scrape_reels()
         elif "/p/" in url:
             return self._scrape_post()
+        elif "/following/" in url:
+            return self._scrape_following()
         else:
             return self._scrape_user_profile()
 
@@ -476,3 +478,174 @@ class InstagramScraper(BaseScraper):
         except Exception as e:
             print(f"Failed to get metadata: {str(e)}")
             return "N/A"
+
+    def _scrape_following(self):
+        try:
+            # Wait for the profile page to load
+            time.sleep(3)
+            
+            # Get following count first with updated selectors
+            following_count = None
+            try:
+                following = self.driver.find_element(By.XPATH, "//ul/li[3]//span/span")
+                following_count = following.text
+                 
+            except Exception as e:
+                print(f"Error getting following count: {str(e)}")
+                following_count = "N/A"
+
+            # Click the following link using multiple fallback approaches
+            try:
+                # First try: Click using the specific classes
+                following_link = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((
+                        By.CSS_SELECTOR,
+                        'a[href$="/following/"]._a6hd'
+                    ))
+                )
+                following_link.click()
+            except:
+                try:
+                    # Second try: Using JavaScript with specific class
+                    self.driver.execute_script("""
+                        var link = document.querySelector('a[href$="/following/"]._a6hd');
+                        if (link) {
+                            link.click();
+                            return true;
+                        }
+                        return false;
+                    """)
+                except:
+                    # Final try: Using full class list
+                    self.driver.execute_script("""
+                        var link = document.querySelector('a.x1i10hfl.xjbqb8w._a6hd[href$="/following/"]');
+                        if (link) {
+                            link.click();
+                            return true;
+                        }
+                        return false;
+                    """)
+            
+            print("Attempting to click following link")
+            time.sleep(5)
+            
+            # Wait for the modal to appear and get the scrollable container with specific classes
+            following_div = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((
+                    By.CSS_SELECTOR,
+                    'div.x9f619.xjbqb8w.x78zum5 div.x1n2onr6.x1ja2u2z'
+                ))
+            )
+            print("Found scrollable container")
+            time.sleep(3)
+
+            following_data = []
+            last_count = 0
+            no_change_count = 0
+            scroll_height = 0
+            max_retries = 50  # Increased from 30 to 50
+
+            while no_change_count < 5:  # Changed from scroll_attempts < max_attempts
+                # Get items using multiple selector patterns for better coverage
+                following_items = self.driver.find_elements(
+                    By.CSS_SELECTOR,
+                    'div._aano div._ab8w._ab94._ab97._ab9f._ab9k._ab9p._abcm'
+                ) or self.driver.find_elements(
+                    By.CSS_SELECTOR,
+                    'div.x9f619.xjbqb8w.x78zum5.x168nmei div.x1iyjqo2'
+                )
+                
+                current_count = len(following_items)
+                print(f"Current visible items: {current_count}")
+
+                # Process visible items
+                for item in following_items[last_count:]:  # Only process new items
+                    try:
+                        img = item.find_element(
+                            By.CSS_SELECTOR,
+                            'img.xpdipgo, img._aa8j'
+                        )
+                        profile_img = img.get_attribute("src")
+                        
+                        username_el = item.find_element(
+                            By.CSS_SELECTOR,
+                            'span._ap3a._aaco._aacw._aacx._aad7._aade, div._ab8w._ab94._ab97._ab9f._ab9k._ab9p._abcm a'
+                        )
+                        username = username_el.text.strip()
+                        
+                        try:
+                            display_name = item.find_element(
+                                By.CSS_SELECTOR,
+                                'span.x1lliihq.x193iq5w.x6ikm8r, div._ab8w._ab94._ab97._ab9f._ab9k._ab9p._abcm span'
+                            ).text
+                        except:
+                            display_name = ""
+                        
+                        if username and not any(d['username'] == username for d in following_data):
+                            following_data.append({
+                                'username': username,
+                                'profile_img': profile_img,
+                                'display_name': display_name
+                            })
+                            print(f"Added user: {username} (Total: {len(following_data)})")
+                    except Exception as e:
+                        print(f"Error processing item: {str(e)}")
+                        continue
+
+                # Scroll using multiple techniques
+                try:
+                    # Try different scroll methods
+                    for scroll_method in range(3):
+                        if scroll_method == 0:
+                            # Method 1: Scroll the modal
+                            modal = self.driver.find_element(
+                                By.CSS_SELECTOR,
+                                'div._aano, div.x9f619.xjbqb8w.x78zum5 div.x1n2onr6.x1ja2u2z'
+                            )
+                            self.driver.execute_script(
+                                "arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;",
+                                modal
+                            )
+                        elif scroll_method == 1:
+                            # Method 2: Scroll to last item
+                            if following_items:
+                                self.driver.execute_script(
+                                    "arguments[0].scrollIntoView(true);",
+                                    following_items[-1]
+                                )
+                        else:
+                            # Method 3: Scroll by fixed amount
+                            self.driver.execute_script(
+                                "window.scrollBy(0, 1000);"
+                            )
+                        
+                        time.sleep(2)  # Wait for content to load
+                except Exception as e:
+                    print(f"Scroll error: {str(e)}")
+
+                # Check if we're getting new items
+                if current_count > last_count:
+                    last_count = current_count
+                    no_change_count = 0
+                else:
+                    no_change_count += 1
+                    print(f"No new items found, attempt {no_change_count}/5")
+
+                # Safety check to prevent infinite loops
+                if len(following_data) >= 1000:  # Adjust this limit as needed
+                    print("Reached maximum number of items to scrape")
+                    break
+
+            return {
+                "type": "following",
+                "count": following_count,
+                "following_list": following_data
+            }
+
+        except Exception as e:
+            print(f"Error in _scrape_following: {str(e)}")
+            return {
+                "type": "following",
+                "error": "Failed to scrape following data",
+                "details": str(e)
+            }
