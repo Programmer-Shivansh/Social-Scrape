@@ -41,7 +41,9 @@ def get_platform(url: str) -> str:
 
 def get_content_type(url: str) -> str:
     url = str(url).lower()
-    if "instagram.com/reels/" in url:
+    if "instagram.com/stories/" in url:
+        return "story"
+    elif "instagram.com/reels/" in url:
         return "reels"
     elif "instagram.com/p/" in url:
         return "post"
@@ -67,26 +69,51 @@ async def scrape_url(request: ScrapeRequest):
     try:
         platform = get_platform(request.url)
         content_type = get_content_type(request.url)
-
+        print(f"Platform: {platform}, Content Type: {content_type}")
+        
         if platform == "unknown":
             raise HTTPException(status_code=400, detail="Unsupported platform")
 
-        scraper_class = SCRAPER_MAP.get(platform)
-        scraper = scraper_class()
-
+        if platform not in SCRAPER_MAP:
+            raise HTTPException(status_code=400, detail=f"No scraper available for platform: {platform}")
+            
         try:
-            data = scraper.scrape_profile(str(request.url))
-            return {
-                "success": True,
-                "platform": platform,
-                "content_type": content_type,
-                "data": data,
-            }
-        finally:
-            scraper.close()
+            scraper = SCRAPER_MAP[platform]()
+            print(f"Scraper initialized for {platform}")
+            
+            try:
+                data = scraper.scrape_profile(str(request.url))
+                print(f"Data scraped: {data}")
+                return {
+                    "success": True,
+                    "platform": platform,
+                    "content_type": content_type,
+                    "data": data,
+                }
+            except Exception as scrape_error:
+                print(f"Scraping error: {str(scrape_error)}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Error during scraping: {str(scrape_error)}"
+                )
+            finally:
+                scraper.close()
+                
+        except Exception as init_error:
+            print(f"Scraper initialization error: {str(init_error)}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to initialize scraper: {str(init_error)}"
+            )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Unexpected error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error occurred: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

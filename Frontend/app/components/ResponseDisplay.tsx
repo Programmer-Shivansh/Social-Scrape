@@ -25,8 +25,8 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
     // Clean up the URL and ensure it's a valid URL
     const cleanUrl = url.replace(/\\/g, '').replace(/^"(.+)"$/, '$1');
     
-    // Add fallback image
     const [imgError, setImgError] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     
     if (imgError) {
       return (
@@ -45,14 +45,20 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
         whileHover={{ scale: 1.1, borderColor: "rgba(255,255,255,0.4)" }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20" />
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-white/20 border-t-white"/>
+          </div>
+        )}
         <Image
           src={cleanUrl}
           alt="Profile"
           fill
-          className="object-cover z-10"
+          className={`object-cover z-10 transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
           unoptimized
           onError={() => setImgError(true)}
-          sizes="(max-width: 128px) 100vw, 128px"
+          onLoad={() => setIsLoading(false)}
+          sizes="128px"
           priority
         />
       </motion.div>
@@ -302,6 +308,72 @@ export default function ResponseDisplay({ data, onClose }: ResponseDisplayProps)
 
   const renderInstagramContent = (content: any) => {
     switch (content.type) {
+      case 'story':
+        return (
+          <div className="space-y-8">
+            {/* Story Header */}
+            <div className="flex items-center gap-4">
+              <FaInstagram className="text-pink-500" size={40} />
+              <div>
+                <h2 className="text-3xl font-bold text-white">Instagram Story</h2>
+                <p className="text-white/60">@{content.author_info}</p>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Column - Profile Picture */}
+              <motion.div className="flex flex-col items-center gap-4">
+                {renderProfileImage(content.profile_image)}
+                <h3 className="text-xl font-bold text-white">@{content.author_info}</h3>
+              </motion.div>
+
+              {/* Right Column - Metadata */}
+              <div className="space-y-4">
+                {content.metadata && (
+                  <motion.div 
+                    className="bg-white/5 rounded-xl p-6"
+                    whileHover={{ scale: 1.01 }}
+                  >
+                    <h3 className="text-white/80 text-lg mb-4">Account Information</h3>
+                    <div className="space-y-3">
+                      {content.metadata.date_joined && (
+                        <div className="flex items-center gap-3">
+                          <FaCalendar className="text-purple-400" size={16} />
+                          <p className="text-white/90">
+                            Joined: {content.metadata.date_joined}
+                          </p>
+                        </div>
+                      )}
+                      {content.metadata.account_based && (
+                        <div className="flex items-center gap-3">
+                          <FaUser className="text-blue-400" size={16} />
+                          <p className="text-white/90">
+                            Based in: {content.metadata.account_based}
+                          </p>
+                        </div>
+                      )}
+                      {content.metadata.verified_on && (
+                        <div className="flex items-center gap-3">
+                          <motion.div
+                            className="text-green-400"
+                            whileHover={{ scale: 1.1 }}
+                          >
+                            ✓
+                          </motion.div>
+                          <p className="text-white/90">
+                            Verified: {content.metadata.verified_on}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
       case 'profile':
         return (
           <div className="space-y-8">

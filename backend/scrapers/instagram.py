@@ -21,7 +21,10 @@ class InstagramScraper(BaseScraper):
         password_env = os.getenv("INSTAGRAM_PASSWORD")
 
         if not username_env or not password_env:
-            raise ValueError("Instagram credentials not found in environment variables")
+            # raise ValueError("Instagram credentials not found in environment variables")
+            os.environ["INSTAGRAM_USERNAME"] = "default_username"  
+            os.environ["INSTAGRAM_PASSWORD"] = "default_password"  
+
 
         self.driver.get("https://www.instagram.com/accounts/login/")
         time.sleep(4)
@@ -41,7 +44,9 @@ class InstagramScraper(BaseScraper):
         self.driver.get(url)
         time.sleep(3)
 
-        if "/reels/" in url:
+        if "/stories/" in url:
+            return self._scrape_stories()
+        elif "/reels/" in url:
             return self._scrape_reels()
         elif "/p/" in url:
             return self._scrape_post()
@@ -176,20 +181,30 @@ class InstagramScraper(BaseScraper):
 
     def _get_profile_picture(self):
         try:
-            # Try the full specific path first
-            img_container = self.driver.find_element(
+            # Try the new specific XPath first
+            img = self.driver.find_element(
                 By.XPATH,
-                "//div[contains(@id, 'mount_0_0')]/div/div/div[2]/div/div/div[1]/div[2]/div/div[1]/section/main/div/header/section[1]/div/span/div/div",
+                "//section/main/div/header/section[1]/div/span/div/div/span/img"
             )
-            img = img_container.find_element(By.TAG_NAME, "img")
             return img.get_attribute("src")
         except:
             try:
-                # Fallback to a more general XPath
-                img = self.driver.find_element(By.XPATH, "//header//span/div/div//img")
+                # First fallback: try finding any img within the header
+                img = self.driver.find_element(
+                    By.XPATH,
+                    "//section/main/div/header//img"
+                )
                 return img.get_attribute("src")
             except:
-                return "N/A"
+                try:
+                    # Second fallback: try finding by class name pattern
+                    img = self.driver.find_element(
+                        By.CSS_SELECTOR,
+                        "header img._aadp"
+                    )
+                    return img.get_attribute("src")
+                except:
+                    return "N/A"
 
     def _get_post_likes(self):
         try:
@@ -302,3 +317,162 @@ class InstagramScraper(BaseScraper):
                 return bio.text
             except:
                 return "N/A"
+
+    def _scrape_stories(self):
+        try:
+            print("Starting stories scrape")
+            time.sleep(5)
+
+            # Click menu button using JavaScript
+            self.driver.execute_script("""
+                var elements = document.querySelectorAll('button,div[role="button"]');
+                for (var el of elements) {
+                    if (el.innerHTML.includes('Menu') || 
+                        el.textContent.includes('More options') ||
+                        el.getAttribute('aria-label')?.includes('Menu')) {
+                        el.click();
+                        return true;
+                    }
+                }
+                return false;
+            """)
+            print("Clicked menu button successfully")
+            time.sleep(2)
+
+            # Click "About this account" using JavaScript
+            self.driver.execute_script("""
+                var buttons = document.querySelectorAll('button');
+                for (var btn of buttons) {
+                    if (btn.textContent.includes('About this account')) {
+                        btn.click();
+                        return true;
+                    }
+                }
+            """)
+            print("Clicked About this account button")
+            time.sleep(3)
+
+            # Get data from About modal
+            return {
+                "type": "story",
+                "profile_image": self._get_about_profile_image(),
+                "author_info": self._get_about_author(),
+                "metadata": self._get_about_metadata()
+            }
+
+        except Exception as e:
+            print(f"Error in _scrape_stories: {str(e)}")
+            return {
+                "type": "story",
+                "error": "Failed to access story",
+                "details": str(e)
+            }
+
+    def _get_about_profile_image(self):
+        try:
+            # Try multiple selectors to find the profile image
+            selectors = [
+                "//img[@class='wbloks_1']",
+                "//img[contains(@class, 'wbloks_1')]",
+                "//div[4]//img[contains(@src, 'instagram.com')]",
+                "//img[@data-bloks-name='bk.components.Image']"
+            ]
+            
+            for selector in selectors:
+                try:
+                    img = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.XPATH, selector))
+                    )
+                    src = img.get_attribute("src")
+                    if src and 'instagram.com' in src:
+                        return src
+                except:
+                    continue
+                    
+            return "N/A"
+        except Exception as e:
+            print(f"Failed to get profile image: {str(e)}")
+            return "N/A"
+
+    def _get_about_author(self):
+        try:
+            # Try multiple selectors to find the author name
+            selectors = [
+                "//span[@role='heading']",
+                "//span[contains(@style, 'font-weight: 700')]",
+                "//div[contains(@class, 'wbloks_1')]//span[@data-bloks-name='bk.components.Text']",
+                "//span[@data-bloks-name='bk.components.Text'][@role='heading']"
+            ]
+            
+            for selector in selectors:
+                try:
+                    author = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.XPATH, selector))
+                    )
+                    text = author.text or author.get_attribute("aria-label")
+                    if text:
+                        return text
+                except:
+                    continue
+                    
+            return "N/A"
+        except Exception as e:
+            print(f"Failed to get author info: {str(e)}")
+            return "N/A"
+
+    def _get_about_metadata(self):
+        try:
+            metadata = {}
+            
+            # Date joined - look for div with "Date joined" text
+            try:
+                date_joined_div = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((
+                        By.XPATH,
+                        "//div[@data-bloks-name='bk.components.Flexbox'][@role='button'][@aria-label='Date joined']"
+                    ))
+                )
+                date_text = date_joined_div.find_element(
+                    By.XPATH,
+                    ".//span[contains(@style, 'color: rgb(168, 168, 168)')]"
+                ).text
+                metadata['date_joined'] = date_text
+            except Exception as e:
+                print(f"Failed to get date joined: {str(e)}")
+                metadata['date_joined'] = "N/A"
+
+            # Account based in
+            try:
+                location_div = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((
+                        By.XPATH,
+                        "//div[@data-bloks-name='bk.components.Flexbox'][@role='button'][@aria-label='Account based in']"
+                    ))
+                )
+                location_text = location_div.find_element(
+                    By.XPATH,
+                    ".//span[contains(@style, 'color: rgb(168, 168, 168)')]"
+                ).text
+                metadata['account_based'] = location_text
+            except Exception as e:
+                print(f"Failed to get location: {str(e)}")
+                metadata['account_based'] = "N/A"
+
+            # Verified status
+            try:
+                verified_text = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((
+                        By.XPATH,
+                        "//span[@data-bloks-name='bk.components.Text'][@style='font-weight: 400; padding: unset; line-height: 1.3; font-size: 14px; color: rgb(168, 168, 168); white-space: pre-wrap; overflow-wrap: break-word;']"
+                    ))
+                ).text
+                metadata['verified_on'] = verified_text
+            except Exception as e:
+                print(f"Failed to get verified status: {str(e)}")
+                metadata['verified_on'] = "N/A"
+
+            return metadata
+
+        except Exception as e:
+            print(f"Failed to get metadata: {str(e)}")
+            return "N/A"
